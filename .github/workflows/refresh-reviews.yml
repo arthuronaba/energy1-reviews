@@ -1,0 +1,33 @@
+name: Refresh Google reviews
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every day. Change as you like (cron syntax).
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Lets you trigger it manually from the Actions tab.
+
+permissions:
+  contents: write  # Needed so the job can commit the regenerated HTML.
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate reviews HTML
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: node generate-reviews.js
+
+      - name: Commit updated HTML if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add google-reviews.html
+          git diff --cached --quiet || git commit -m "Refresh reviews"
+          git push
